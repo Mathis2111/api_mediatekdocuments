@@ -31,6 +31,7 @@ class MyAccessBDD extends AccessBDD {
      * @override
      */	
     protected function traitementSelect(string $table, ?array $champs) : ?array{
+        
         switch($table){  
             case "livre" :
                 return $this->selectAllLivres();
@@ -40,6 +41,8 @@ class MyAccessBDD extends AccessBDD {
                 return $this->selectAllRevues();
             case "exemplaire" :
                 return $this->selectExemplairesRevue($champs);
+            case "service" :
+                return $this->getServiceByUserName($champs);
             case "genre" :
             case "public" :
             case "rayon" :
@@ -51,7 +54,7 @@ class MyAccessBDD extends AccessBDD {
             default:
                 // cas général
                 return $this->selectTuplesOneTable($table, $champs);
-        }	
+        }
     }
 
     /**
@@ -64,6 +67,8 @@ class MyAccessBDD extends AccessBDD {
     protected function traitementInsert(string $table, ?array $champs) : ?int{
         switch($table){
             case "" :
+            case "ajout_livre" :
+                return $this->AjouterLivre($champs);
                 // return $this->uneFonction(parametres);
             default:                    
                 // cas général
@@ -277,4 +282,104 @@ class MyAccessBDD extends AccessBDD {
         return $this->conn->queryBDD($requete, $champNecessaire);
     }		    
     
+    private function AjouterLivre(?array $champs): bool {
+        
+       $jsonData = file_get_contents('php://input');
+       error_log("Données brutes reçues : " . $jsonData, 3, "C:\\mon_application.log");
+       $champs = json_decode($jsonData, true);
+       
+       if (empty($champs)) {
+            error_log("Erreur : Le tableau \$champs est vide.", 3, "C:\\mon_application.log");
+            return false;
+        }
+    
+       /*$champNecessaire = [
+            'id' => $champs['id'],
+            'titre' => $champs['titre'],
+            'auteur' => $champs['auteur'],
+            'isbn' => $champs['isbn'],
+            'collection' => $champs['collection'],
+            'image' => $champs['image'],
+            'genre' => $champs['idGenre'],
+            'public' => $champs['idPublic'],
+            'rayon' => $champs['idRayon']
+        ];
+        error_log("insert table  : 4 \n", 3, "C:\mon_application.log");
+        error_log("id  : " . $champs['id'] . "\n", 3, "C:\\mon_application.log");
+        error_log("titre  : " . $champs['titre'] . "\n", 3, "C:\\mon_application.log");
+        error_log("auteur  : " . $champs['auteur'] . "\n", 3, "C:\\mon_application.log");
+        error_log("isbn  : " . $champs['isbn'] . "\n", 3, "C:\\mon_application.log");
+        error_log("collection  : " . $champs['collection'] . "\n", 3, "C:\\mon_application.log");
+        
+        $requete = "START TRANSACTION;
+                    INSERT INTO document (id, titre, image, idGenre, idPublic, idRayon)
+                    VALUES (:id, :titre, :image, :idGenre, :idPublic, :idRayon);
+                    INSERT INTO livres_dvd (id)
+                    VALUES (:id);
+                    INSERT INTO livre (id, auteur, isbn, collection)
+                    VALUES (:id, :auteur, :isbn, :collection);
+                    COMMIT;";*/
+       try{
+            $docChamps = [
+            'id' => $champs['id'],
+            'titre' => $champs['titre'],
+            'image' => $champs['image'],
+            'idGenre' => $champs['idGenre'],
+            'idPublic' => $champs['idPublic'],
+            'idRayon' => $champs['idRayon']
+        ];
+        $this->insertOneTupleOneTable("document", $docChamps);
+
+        $livresDvdChamps = ['id' => $champs['id']];
+        $this->insertOneTupleOneTable("livres_dvd", $livresDvdChamps);
+
+        $livreChamps = [
+            'id' => $champs['id'],
+            'auteur' => $champs['auteur'],
+            'isbn' => $champs['isbn'],
+            'collection' => $champs['collection']
+        ];
+        $this->insertOneTupleOneTable("livre", $livreChamps);
+        
+            return true;
+        }catch (Exception $e){
+           $requete2 = "ROLLBACK;";
+           $value = $this->conn->updateBDD($requete2, $champNecessaire);
+           return false;
+        }
+         
+    }
+    
+    /**
+    * Récupère le service d'un utilisateur en fonction de son nom
+    * @param ?array $champs
+    * @return array|null
+    */
+    private function getServiceByUserName(?array $champs) : ?array {
+        
+        if ($champs === null) {
+            $jsonData = file_get_contents('php://input');
+            $champs = json_decode($jsonData, true);
+        }
+
+        if (!is_array($champs) || empty($champs)) {
+            throw new InvalidArgumentException("Erreur 1 : aucun nom d'utilisateur fourni.");
+        }
+        if(!array_key_exists('utilisateur', $champs)){
+            throw new InvalidArgumentException("Erreur 2 : aucun nom d'utilisateur fourni.");
+        }
+        $nomUtilisateur = $champs['utilisateur'];
+        $requete = "SELECT service.service 
+                   FROM utilisateur 
+                   JOIN service ON utilisateur.service_id = service.id 
+                   WHERE utilisateur.nom = :nom";
+        
+        $resultat = $this->conn->queryBDD($requete, ["nom" => $nomUtilisateur]);
+        
+        if ($resultat === false) {
+            throw new RuntimeException("Erreur lors de la récupération du service.");
+        }
+
+        return $resultat;
+    }
 }
