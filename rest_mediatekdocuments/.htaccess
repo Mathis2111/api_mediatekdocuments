@@ -1,3 +1,4 @@
+Options -Indexes
 RewriteEngine on
 RewriteCond %{REQUEST_METHOD} =GET
 RewriteRule ^([a-zA-Z0-9_]+)$ src/index.php?table=$1 [B,L]
