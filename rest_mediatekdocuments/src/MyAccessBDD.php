@@ -43,6 +43,16 @@ class MyAccessBDD extends AccessBDD {
                 return $this->selectExemplairesRevue($champs);
             case "service" :
                 return $this->getServiceByUserName($champs);
+            case "commandedocument" :
+                return $this->selectAllCommandesDocument($champs);
+            case "suivi" : 
+                return $this->getAllSuivis();
+            case "commande" :
+                return $this->selectAllCommande($champs);
+            case "abonnement" :
+                return $this->selectAllAbonnementsRevues($champs);
+            case "abonnementsecheance" :
+                return $this->selectAllAbonnementsEcheance();
             case "genre" :
             case "public" :
             case "rayon" :
@@ -66,9 +76,14 @@ class MyAccessBDD extends AccessBDD {
      */	
     protected function traitementInsert(string $table, ?array $champs) : ?int{
         switch($table){
-            case "" :
             case "ajout_livre" :
                 return $this->AjouterLivre($champs);
+            case "ajout_commande" :
+                return $this->AjouterCommande($champs);
+            case"ajout_commandeDocument" : 
+                return $this->AjouterCommandeDocument($champs);
+            case "ajout_abonnement" : 
+                return $this->AjouterAbonnementRevue($champs);
                 // return $this->uneFonction(parametres);
             default:                    
                 // cas général
@@ -88,6 +103,10 @@ class MyAccessBDD extends AccessBDD {
         switch($table){
             case "" :
                 // return $this->uneFonction(parametres);
+            case "modif_livre" :
+                return $this->ModifierLivre($champs);
+            case "modif_etatCommande" :
+                return $this->ModifierEtatCommande($champs);
             default:                    
                 // cas général
                 return $this->updateOneTupleOneTable($table, $id, $champs);
@@ -103,7 +122,10 @@ class MyAccessBDD extends AccessBDD {
      */	
     protected function traitementDelete(string $table, ?array $champs) : ?int{
         switch($table){
-            case "" :
+            case "sup_commande" :
+                return $this->SupprimerCommandeDocument($champs);
+            case "sup_abonnement" : 
+                return $this->SupprimerAbonnementRevue($champs);
                 // return $this->uneFonction(parametres);
             default:                    
                 // cas général
@@ -282,72 +304,40 @@ class MyAccessBDD extends AccessBDD {
         return $this->conn->queryBDD($requete, $champNecessaire);
     }		    
     
-    private function AjouterLivre(?array $champs): bool {
+    private function AjouterLivre(?array $champs): int {
         
-       $jsonData = file_get_contents('php://input');
-       error_log("Données brutes reçues : " . $jsonData, 3, "C:\\mon_application.log");
-       $champs = json_decode($jsonData, true);
-       
-       if (empty($champs)) {
-            error_log("Erreur : Le tableau \$champs est vide.", 3, "C:\\mon_application.log");
-            return false;
+        if (empty($champs)) {
+            return 0;
         }
-    
-       /*$champNecessaire = [
-            'id' => $champs['id'],
-            'titre' => $champs['titre'],
-            'auteur' => $champs['auteur'],
-            'isbn' => $champs['isbn'],
-            'collection' => $champs['collection'],
-            'image' => $champs['image'],
-            'genre' => $champs['idGenre'],
-            'public' => $champs['idPublic'],
-            'rayon' => $champs['idRayon']
-        ];
-        error_log("insert table  : 4 \n", 3, "C:\mon_application.log");
-        error_log("id  : " . $champs['id'] . "\n", 3, "C:\\mon_application.log");
-        error_log("titre  : " . $champs['titre'] . "\n", 3, "C:\\mon_application.log");
-        error_log("auteur  : " . $champs['auteur'] . "\n", 3, "C:\\mon_application.log");
-        error_log("isbn  : " . $champs['isbn'] . "\n", 3, "C:\\mon_application.log");
-        error_log("collection  : " . $champs['collection'] . "\n", 3, "C:\\mon_application.log");
-        
-        $requete = "START TRANSACTION;
-                    INSERT INTO document (id, titre, image, idGenre, idPublic, idRayon)
-                    VALUES (:id, :titre, :image, :idGenre, :idPublic, :idRayon);
-                    INSERT INTO livres_dvd (id)
-                    VALUES (:id);
-                    INSERT INTO livre (id, auteur, isbn, collection)
-                    VALUES (:id, :auteur, :isbn, :collection);
-                    COMMIT;";*/
-       try{
-            $docChamps = [
-            'id' => $champs['id'],
-            'titre' => $champs['titre'],
-            'image' => $champs['image'],
-            'idGenre' => $champs['idGenre'],
-            'idPublic' => $champs['idPublic'],
-            'idRayon' => $champs['idRayon']
-        ];
-        $this->insertOneTupleOneTable("document", $docChamps);
 
-        $livresDvdChamps = ['id' => $champs['id']];
-        $this->insertOneTupleOneTable("livres_dvd", $livresDvdChamps);
+        try {
+            $this->conn->updateBDD("START TRANSACTION");
 
-        $livreChamps = [
-            'id' => $champs['id'],
-            'auteur' => $champs['auteur'],
-            'isbn' => $champs['isbn'],
-            'collection' => $champs['collection']
-        ];
-        $this->insertOneTupleOneTable("livre", $livreChamps);
-        
-            return true;
-        }catch (Exception $e){
-           $requete2 = "ROLLBACK;";
-           $value = $this->conn->updateBDD($requete2, $champNecessaire);
-           return false;
+            $champsDocument['id'] = $champs['Id'];
+            $champsDocument['titre'] = $champs['Titre'];
+            $champsDocument['image'] = $champs['Image'];
+            $champsDocument['idGenre'] = $champs['IdGenre'];
+            $champsDocument['idPublic'] = $champs['IdPublic'];
+            $champsDocument['idRayon'] = $champs['IdRayon'];
+            $result1 = $this->insertOneTupleOneTable("document", $champsDocument);
+            
+            $champsLivres_dvd['id'] = $champs['Id'];
+            $result2 = $this->insertOneTupleOneTable("livres_dvd", $champsLivres_dvd);
+
+            $champsLivre['id'] = $champs['Id'];
+            $champsLivre['auteur'] = $champs['Auteur'];
+            $champsLivre['isbn'] = $champs['Isbn'];
+            $champsLivre['collection'] = $champs['Collection'];
+            $result3 = $this->insertOneTupleOneTable("livre", $champsLivre);
+
+            $this->conn->updateBDD("COMMIT");
+
+            return $result1 + $result2 + $result3;
+        } catch (Exception $e) {
+
+            $this->conn->updateBDD("ROLLBACK");
+            return 0;
         }
-         
     }
     
     /**
@@ -356,11 +346,6 @@ class MyAccessBDD extends AccessBDD {
     * @return array|null
     */
     private function getServiceByUserName(?array $champs) : ?array {
-        
-        if ($champs === null) {
-            $jsonData = file_get_contents('php://input');
-            $champs = json_decode($jsonData, true);
-        }
 
         if (!is_array($champs) || empty($champs)) {
             throw new InvalidArgumentException("Erreur 1 : aucun nom d'utilisateur fourni.");
@@ -381,5 +366,238 @@ class MyAccessBDD extends AccessBDD {
         }
 
         return $resultat;
+    }
+    
+   private function ModifierLivre(?array $champs): int {
+        
+
+        if (empty($champs)) {
+            return 0;
+        }
+
+        try {
+            $this->conn->updateBDD("START TRANSACTION");
+
+            $champsId['id'] = $champs['Id'];
+            $champId = implode("", $champsId);
+            $champsDocument['titre'] = $champs['Titre'];
+            $champsDocument['image'] = $champs['Image'];
+            $champsDocument['idGenre'] = $champs['IdGenre'];
+            $champsDocument['idPublic'] = $champs['IdPublic'];
+            $champsDocument['idRayon'] = $champs['IdRayon'];
+            $result1 = $this->updateOneTupleOneTable("document", $champId, $champsDocument);
+
+            $champsLivre['auteur'] = $champs['Auteur'];
+            $champsLivre['isbn'] = $champs['Isbn'];
+            $champsLivre['collection'] = $champs['Collection'];
+            $result3 = $this->updateOneTupleOneTable("livre", $champId, $champsLivre);
+
+            $this->conn->updateBDD("COMMIT");
+
+            return $result1 + $result3;
+        } catch (Exception $e) {
+
+            $this->conn->updateBDD("ROLLBACK");
+            return 0;
+        }
+    }
+    
+    /**
+     * récupération de toutes les commandes d'un document
+     * @param string $champs id du document concerné
+     * @return lignes de la requete
+     */
+    public function selectAllCommandesDocument(?array $champs) : ?array {
+        $sql = "SELECT cd.*, c.dateCommande, c.montant, s.libelle 
+            FROM commandedocument cd
+            JOIN commande c ON cd.id = c.id
+            JOIN suivi s ON cd.idSuivi = s.id
+            WHERE cd.idLivreDvd = :idLivreDvd";
+            $champNecessaire['idLivreDvd'] = $champs['Id'];
+
+            return $this->conn->queryBDD($sql, $champNecessaire);
+    }
+    
+    private function getAllSuivis() : ?array{
+        $requete = "SELECT s.* FROM suivi s";		
+        return $this->conn->queryBDD($requete);
+    }
+    
+    private function selectAllCommande(?array $champs) : ?array{
+        $champNecessaire['id'] = $champs['Id'];
+        $requete = "SELECT * FROM commande WHERE id = :id";		
+        return $this->conn->queryBDD($requete, $champNecessaire);
+    }
+    
+    private function AjouterCommande(?array $champs): int { 
+
+        if (empty($champs)) {
+            return 0;
+        }
+
+        try {
+            $this->conn->updateBDD("START TRANSACTION");
+            $champsCommande['id'] = $champs['Id'];
+            $champsCommande['dateCommande'] = $champs['DateCommande'];
+            $champsCommande['montant'] = $champs['Montant'];
+            $result1 = $this->insertOneTupleOneTable("commande", $champsCommande);
+
+            $this->conn->updateBDD("COMMIT");
+
+            return $result1;
+        } catch (Exception $e) {
+
+            $this->conn->updateBDD("ROLLBACK");
+            return 0;
+        }
+    }
+    
+    private function AjouterCommandeDocument(?array $champs): int {
+
+        if (empty($champs)) {
+            return 0;
+        }
+
+        try {
+            $this->conn->updateBDD("START TRANSACTION");
+            $champsCommandeDocument['id'] = $champs['Id'];
+            $champsCommandeDocument['nbExemplaire'] = $champs['NbExemplaire'];
+            $champsCommandeDocument['idLivreDvd'] = $champs['IdLivreDvd'];
+            $champsCommandeDocument['idSuivi'] = $champs['IdSuivi'];
+            $result1 = $this->insertOneTupleOneTable("commandedocument", $champsCommandeDocument);
+
+            $this->conn->updateBDD("COMMIT");
+
+            return $result1;
+        } catch (Exception $e) {
+
+            $this->conn->updateBDD("ROLLBACK");
+            return 0;
+        }
+    }
+    
+    private function ModifierEtatCommande(?array $champs): int {
+
+        if (empty($champs)) {
+            return 0;
+        }
+
+        try {
+            $this->conn->updateBDD("START TRANSACTION");
+            $champsId['id'] = $champs['Id'];
+            $champId = implode("", $champsId);
+            $champsEtatCommande['idSuivi'] = $champs['IdSuivi'];
+            
+            $result1 = $this->updateOneTupleOneTable("commandedocument", $champId, $champsEtatCommande);
+
+
+            $this->conn->updateBDD("COMMIT");
+
+            return $result1;
+        } catch (Exception $e) {
+
+            $this->conn->updateBDD("ROLLBACK");
+            return 0;
+        }
+    }
+    
+    private function SupprimerCommandeDocument(?array $champs): int {
+
+        if (empty($champs)) {
+            return 0;
+        }
+
+        try {
+            $this->conn->updateBDD("START TRANSACTION");
+            
+            $champsCommandeDocument['id'] = $champs['Id'];
+            $champsCommandeDocument['nbExemplaire'] = $champs['NbExemplaire'];
+            $champsCommandeDocument['idLivreDvd'] = $champs['IdLivreDvd'];
+            $champsCommandeDocument['idSuivi'] = $champs['IdSuivi'];
+            $result1 = $this->deleteTuplesOneTable("commandedocument", $champsCommandeDocument);
+            
+            $champsCommande['dateCommande'] = $champs['DateCommande'];
+            $champsCommande['id'] = $champs['Id'];
+            $champsCommande['montant'] = $champs['Montant'];
+            $result2 = $this->deleteTuplesOneTable("commande", $champsCommande);
+
+            $this->conn->updateBDD("COMMIT");
+
+            return $result1 + $result2;
+        } catch (Exception $e) {
+
+            $this->conn->updateBDD("ROLLBACK");
+            return 0;
+        }
+    }
+    
+    public function selectAllAbonnementsRevues($champs){
+        $champsId['id'] = $champs['Id'];
+        $req = "select c.id, c.dateCommande, c.montant, a.dateFinAbonnement, a.idRevue  ";
+        $req .= "from commande c join abonnement a ON c.id=a.id ";
+        $req .= "where a.idRevue= :id  ";
+        $req .= "order by c.dateCommande DESC  ";
+        return $this->conn->queryBDD($req, $champsId);
+    }
+    
+    public function selectAllAbonnementsEcheance(){
+        $req ="select a.dateFinAbonnement, a.idRevue, d.titre ";
+        $req .="from abonnement a ";
+        $req .="join revue r on a.idRevue = r.id ";
+        $req .="join document d on r.id = d.id ";
+        $req .="where datediff(current_date(), a.dateFinAbonnement) < 30 ";
+        $req .="order by a.dateFinAbonnement ASC; ";
+        return $this->conn->queryBDD($req);
+    }
+    
+    private function AjouterAbonnementRevue(?array $champs): int {
+        if (empty($champs)) {
+            return 0;
+        }
+
+        try {
+            $this->conn->updateBDD("START TRANSACTION");
+            $champsAbonnement['id'] = $champs['Id'];
+            $champsAbonnement['dateFinAbonnement'] = $champs['DateFinAbonnement'];
+            $champsAbonnement['idRevue'] = $champs['IdRevue'];
+            $result1 = $this->insertOneTupleOneTable("abonnement", $champsAbonnement);
+
+            $this->conn->updateBDD("COMMIT");
+
+            return $result1;
+        } catch (Exception $e) {
+
+            $this->conn->updateBDD("ROLLBACK");
+            return 0;
+        }
+    }
+    
+    private function SupprimerAbonnementRevue(?array $champs): int {
+
+        if (empty($champs)) {
+            return 0;
+        }
+
+        try {
+            $this->conn->updateBDD("START TRANSACTION");
+            
+            $champsAbonnement['id'] = $champs['Id'];
+            $champsAbonnement['dateFinAbonnement'] = $champs['DateFinAbonnement'];
+            $champsAbonnement['idRevue'] = $champs['IdRevue'];
+            $result1 = $this->deleteTuplesOneTable("abonnement", $champsAbonnement);
+            
+            $champsCommande['dateCommande'] = $champs['DateCommande'];
+            $champsCommande['id'] = $champs['Id'];
+            $champsCommande['montant'] = $champs['Montant'];
+            $result2 = $this->deleteTuplesOneTable("commande", $champsCommande);
+            
+            $this->conn->updateBDD("COMMIT");
+
+            return $result1 + $result2;
+        } catch (Exception $e) {
+
+            $this->conn->updateBDD("ROLLBACK");
+            return 0;
+        }
     }
 }
