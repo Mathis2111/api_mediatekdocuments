@@ -1,6 +1,6 @@
 <h1>Présentation de MyAccessBDD</h1>
 <br>
-Ce projet est une extension de l'API d'origine, disponible ici : Lien vers le dépôt d'origine. Le README de ce dépôt contient la présentation complète de l'API de base, incluant sa structure et son mode de fonctionnement.<br>
+Ce projet est une extension de l'API d'origine, disponible ici : https://github.com/CNED-SLAM/rest_mediatekdocuments Le README de ce dépôt contient la présentation complète de l'API de base, incluant sa structure et son mode de fonctionnement.<br>
 Les ajouts effectués dans cette version concernent uniquement le fichier MyAccessBDD.php, qui introduit de nouvelles fonctions pour répondre aux besoins spécifiques de l'application MediaTekDocuments.<br>
 
 <h2>Créer et remplir la base de données :</h2>
