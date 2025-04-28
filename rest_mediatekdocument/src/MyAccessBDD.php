@@ -84,6 +84,10 @@ class MyAccessBDD extends AccessBDD {
                 return $this->AjouterCommandeDocument($champs);
             case "ajout_abonnement" : 
                 return $this->AjouterAbonnementRevue($champs);
+            case "ajout_dvd" :
+                return $this->AjouterDvd($champs);
+            case "ajout_revue" :
+                return $this->AjouterRevue($champs);
                 // return $this->uneFonction(parametres);
             default:                    
                 // cas général
@@ -105,8 +109,12 @@ class MyAccessBDD extends AccessBDD {
                 // return $this->uneFonction(parametres);
             case "modif_livre" :
                 return $this->ModifierLivre($champs);
+            case "modif_dvd" :
+                return $this->ModifierDvd($champs);
             case "modif_etatCommande" :
                 return $this->ModifierEtatCommande($champs);
+            case "modif_revue" :
+                return $this->ModifierRevue($champs);
             default:                    
                 // cas général
                 return $this->updateOneTupleOneTable($table, $id, $champs);
@@ -126,6 +134,12 @@ class MyAccessBDD extends AccessBDD {
                 return $this->SupprimerCommandeDocument($champs);
             case "sup_abonnement" : 
                 return $this->SupprimerAbonnementRevue($champs);
+            case "sup_livre" : 
+                return $this->SupprimerLivre($champs);
+            case "sup_dvd" :
+                return $this->SupprimerDvd($champs);
+            case "sup_revue" :
+                return $this->SupprimerRevue($champs);
                 // return $this->uneFonction(parametres);
             default:                    
                 // cas général
@@ -368,7 +382,7 @@ class MyAccessBDD extends AccessBDD {
         return $resultat;
     }
     
-   private function ModifierLivre(?array $champs): int {
+    private function ModifierLivre(?array $champs): int {
         
 
         if (empty($champs)) {
@@ -395,6 +409,245 @@ class MyAccessBDD extends AccessBDD {
             $this->conn->updateBDD("COMMIT");
 
             return $result1 + $result3;
+        } catch (Exception $e) {
+
+            $this->conn->updateBDD("ROLLBACK");
+            return 0;
+        }
+    }
+    
+    private function SupprimerLivre(?array $champs): int {
+
+        if (empty($champs)) {
+            return 0;
+        }
+
+        try {
+            $this->conn->updateBDD("START TRANSACTION");
+            
+            $champsLivre['id'] = $champs['Id'];
+            $champsLivre['ISBN'] = $champs['Isbn'];
+            $champsLivre['auteur'] = $champs['Auteur'];
+            $champsLivre['collection'] = $champs['Collection'];
+            $result1 = $this->deleteTuplesOneTable("livre", $champsLivre);
+            
+            $champsLivresDvd['id'] = $champs['Id'];
+            $result2 = $this->deleteTuplesOneTable("livres_dvd", $champsLivresDvd);
+            
+            $champsDocument['id'] = $champs['Id'];
+            $champsDocument['titre'] = $champs['Titre'];
+            $champsDocument['image'] = $champs['Image'];
+            $champsDocument['idRayon'] = $champs['IdRayon'];
+            $champsDocument['idPublic'] = $champs['IdPublic'];
+            $champsDocument['idGenre'] = $champs['IdGenre'];
+            $result3 = $this->deleteTuplesOneTable("document", $champsDocument);
+            
+            $this->conn->updateBDD("COMMIT");
+
+            return $result1 + $result2 + $result3;
+        } catch (Exception $e) {
+
+            $this->conn->updateBDD("ROLLBACK");
+            return 0;
+        }
+    }
+    
+    private function AjouterDvd(?array $champs): int {
+        
+        if (empty($champs)) {
+            return 0;
+        }
+
+        try {
+            $this->conn->updateBDD("START TRANSACTION");
+
+            $champsDocument['id'] = $champs['Id'];
+            $champsDocument['titre'] = $champs['Titre'];
+            $champsDocument['image'] = $champs['Image'];
+            $champsDocument['idGenre'] = $champs['IdGenre'];
+            $champsDocument['idPublic'] = $champs['IdPublic'];
+            $champsDocument['idRayon'] = $champs['IdRayon'];
+            $result1 = $this->insertOneTupleOneTable("document", $champsDocument);
+            
+            $champsLivres_dvd['id'] = $champs['Id'];
+            $result2 = $this->insertOneTupleOneTable("livres_dvd", $champsLivres_dvd);
+
+            $champsDvd['id'] = $champs['Id'];
+            $champsDvd['synopsis'] = $champs['Synopsis'];
+            $champsDvd['realisateur'] = $champs['Realisateur'];
+            $champsDvd['duree'] = $champs['Duree'];
+            $result3 = $this->insertOneTupleOneTable("dvd", $champsDvd);
+
+            $this->conn->updateBDD("COMMIT");
+
+            return $result1 + $result2 + $result3;
+        } catch (Exception $e) {
+
+            $this->conn->updateBDD("ROLLBACK");
+            return 0;
+        }
+    }
+    
+    private function ModifierDvd(?array $champs): int {
+        
+
+        if (empty($champs)) {
+            return 0;
+        }
+
+        try {
+            $this->conn->updateBDD("START TRANSACTION");
+
+            $champsId['id'] = $champs['Id'];
+            $champId = implode("", $champsId);
+            $champsDocument['titre'] = $champs['Titre'];
+            $champsDocument['image'] = $champs['Image'];
+            $champsDocument['idGenre'] = $champs['IdGenre'];
+            $champsDocument['idPublic'] = $champs['IdPublic'];
+            $champsDocument['idRayon'] = $champs['IdRayon'];
+            $result1 = $this->updateOneTupleOneTable("document", $champId, $champsDocument);
+            
+            $champsDvd['synopsis'] = $champs['Synopsis'];
+            $champsDvd['realisateur'] = $champs['Realisateur'];
+            $champsDvd['duree'] = $champs['Duree'];
+            $result3 = $this->updateOneTupleOneTable("dvd", $champId, $champsDvd);
+
+            $this->conn->updateBDD("COMMIT");
+
+            return $result1 + $result3;
+        } catch (Exception $e) {
+
+            $this->conn->updateBDD("ROLLBACK");
+            return 0;
+        }
+    }
+    
+    private function SupprimerDvd(?array $champs): int {
+
+        if (empty($champs)) {
+            return 0;
+        }
+
+        try {
+            $this->conn->updateBDD("START TRANSACTION");
+            
+            $champsDocument['id'] = $champs['Id'];
+            $champsDocument['titre'] = $champs['Titre'];
+            $champsDocument['image'] = $champs['Image'];
+            $champsDocument['idGenre'] = $champs['IdGenre'];
+            $champsDocument['idPublic'] = $champs['IdPublic'];
+            $champsDocument['idRayon'] = $champs['IdRayon'];
+            $result1 = $this->deleteTuplesOneTable("document", $champsDocument);
+            
+            $champsLivres_dvd['id'] = $champs['Id'];
+            $result2 = $this->deleteTuplesOneTable("livres_dvd", $champsLivres_dvd);
+
+            $champsDvd['id'] = $champs['Id'];
+            $champsDvd['synopsis'] = $champs['Synopsis'];
+            $champsDvd['realisateur'] = $champs['Realisateur'];
+            $champsDvd['duree'] = $champs['Duree'];
+            $result3 = $this->deleteTuplesOneTable("dvd", $champsDvd);
+            
+            $this->conn->updateBDD("COMMIT");
+
+            return $result1 + $result2 + $result3;
+        } catch (Exception $e) {
+
+            $this->conn->updateBDD("ROLLBACK");
+            return 0;
+        }
+    }
+    
+    private function AjouterRevue(?array $champs): int {
+        
+        if (empty($champs)) {
+            return 0;
+        }
+
+        try {
+            $this->conn->updateBDD("START TRANSACTION");
+
+            $champsDocument['id'] = $champs['Id'];
+            $champsDocument['titre'] = $champs['Titre'];
+            $champsDocument['image'] = $champs['Image'];
+            $champsDocument['idGenre'] = $champs['IdGenre'];
+            $champsDocument['idPublic'] = $champs['IdPublic'];
+            $champsDocument['idRayon'] = $champs['IdRayon'];
+            $result1 = $this->insertOneTupleOneTable("document", $champsDocument);
+
+            $champsRevue['id'] = $champs['Id'];
+            $champsRevue['periodicite'] = $champs['Periodicite'];
+            $champsRevue['delaiMiseADispo'] = $champs['DelaiMiseADispo'];
+            $result2 = $this->insertOneTupleOneTable("revue", $champsRevue);
+
+            $this->conn->updateBDD("COMMIT");
+
+            return $result1 + $result2;
+        } catch (Exception $e) {
+
+            $this->conn->updateBDD("ROLLBACK");
+            return 0;
+        }
+    }
+    
+    private function ModifierRevue(?array $champs): int {
+        
+
+        if (empty($champs)) {
+            return 0;
+        }
+
+        try {
+            $this->conn->updateBDD("START TRANSACTION");
+
+            $champsId['id'] = $champs['Id'];
+            $champId = implode("", $champsId);
+            $champsDocument['titre'] = $champs['Titre'];
+            $champsDocument['image'] = $champs['Image'];
+            $champsDocument['idGenre'] = $champs['IdGenre'];
+            $champsDocument['idPublic'] = $champs['IdPublic'];
+            $champsDocument['idRayon'] = $champs['IdRayon'];
+            $result1 = $this->updateOneTupleOneTable("document", $champId, $champsDocument);
+            
+            $champsRevue['periodicite'] = $champs['Periodicite'];
+            $champsRevue['delaMiseADispo'] = $champs['DelaiMiseADispo'];
+            $result2 = $this->updateOneTupleOneTable("revue", $champId, $champsRevue);
+
+            $this->conn->updateBDD("COMMIT");
+
+            return $result1 + $result2;
+        } catch (Exception $e) {
+
+            $this->conn->updateBDD("ROLLBACK");
+            return 0;
+        }
+    }
+    
+    private function SupprimerRevue(?array $champs): int {
+
+        if (empty($champs)) {
+            return 0;
+        }
+
+        try {
+            $this->conn->updateBDD("START TRANSACTION");
+            
+            $champsDocument['id'] = $champs['Id'];
+            $champsDocument['titre'] = $champs['Titre'];
+            $champsDocument['image'] = $champs['Image'];
+            $champsDocument['idGenre'] = $champs['IdGenre'];
+            $champsDocument['idPublic'] = $champs['IdPublic'];
+            $champsDocument['idRayon'] = $champs['IdRayon'];
+            $result1 = $this->deleteTuplesOneTable("document", $champsDocument);
+            
+            $champsRevue['id'] = $champs['Id'];
+            $champsRevue['periodicite'] = $champs['Periodicite'];
+            $champsRevue['delaiMiseADispo'] = $champs['DelaiMiseADispo'];
+            $result2 = $this->deleteTuplesOneTable("revue", $champsRevue);
+            
+            $this->conn->updateBDD("COMMIT");
+
+            return $result1 + $result2;
         } catch (Exception $e) {
 
             $this->conn->updateBDD("ROLLBACK");
